@@ -1,0 +1,42 @@
+# Yahoo Finance Stock Analysis Project
+# Python 3.8+ required
+
+# Data Collection
+yfinance==0.2.40
+pandas==2.1.4
+numpy==1.24.3
+
+# Database
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9  # For PostgreSQL
+# OR for SQLite (no install needed, built-in)
+
+# Data Analysis & Visualization
+matplotlib==3.8.2
+seaborn==0.13.0
+plotly==5.18.0
+
+# Machine Learning
+scikit-learn==1.3.2
+lightgbm==4.1.0
+xgboost==2.0.3
+
+# Model Explainability
+shap==0.44.0
+
+# Time Series
+statsmodels==0.14.1
+prophet==1.1.5
+
+# Additional APIs (Optional - for Days 2-4)
+alpha-vantage==2.3.1
+fredapi==0.5.1
+requests==2.31.0
+
+# Jupyter Notebooks
+jupyter==1.0.0
+ipykernel==6.27.1
+
+# Utilities
+python-dotenv==1.0.0
+tqdm==4.66.1
