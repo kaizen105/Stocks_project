@@ -17,8 +17,6 @@ import xgboost
 import hmmlearn
 from hmmlearn.hmm import GaussianHMM
 # Import data processor
-# NOTE: The data_processor has been updated to include time.sleep(15) 
-# before Alpha Vantage calls to prevent the Rate Limit error.
 from app.data_processor import (
     fetch_stock_data,
     calculate_technical_features,
@@ -87,7 +85,7 @@ home_layout = dbc.Container([
             html.Div([
                 html.H1("📈 Stock Prediction Platform", className="display-3 text-white mb-4"),
                 html.P("Real-time stock analysis with AI-powered predictions and live market data",
-                        className="lead text-white-50 mb-4"),
+                       className="lead text-white-50 mb-4"),
                 dbc.Button("Start Analyzing", href="/analysis", color="light", size="lg", className="me-3"),
                 dbc.Button("Run Predictions", href="/prediction", color="outline-light", size="lg")
             ], style={
@@ -99,11 +97,11 @@ home_layout = dbc.Container([
             })
         ])
     ], className="mb-5"),
-    
+   
     # Live Market Overview
     html.H3([html.I(className="fas fa-globe me-2"), "Live Market Overview"], className="mb-4"),
     dbc.Row(id='market-overview-cards', className="mb-5"),
-    
+   
     # Live Stock Search
     html.H3([html.I(className="fas fa-search me-2"), "Real-Time Stock Search"], className="mb-4"),
     dbc.Card([
@@ -124,7 +122,7 @@ home_layout = dbc.Container([
             html.Div(id='search-results', className="mt-3")
         ])
     ], className="mb-5"),
-    
+   
     # Popular Stocks
     html.H3([html.I(className="fas fa-star me-2"), "Popular Stocks"], className="mb-4"),
     dbc.Row([
@@ -177,7 +175,7 @@ home_layout = dbc.Container([
 # =============================================================================
 analysis_layout = dbc.Container([
     html.H2([html.I(className="fas fa-chart-bar me-2"), "Advanced Stock Analysis"], className="mb-4"),
-    
+   
     # Search Bar
     dbc.Card([
         dbc.CardBody([
@@ -187,37 +185,37 @@ analysis_layout = dbc.Container([
             ])
         ])
     ], className="mb-4"),
-    
+   
     # Status
     html.Div(id='analysis-status'),
-    
+   
     # Company Info Card
     dbc.Row([
         dbc.Col(html.Div(id='company-info-card'), md=12)
     ], className="mb-4"),
-    
+   
     # Charts Row 1: Price Chart
     dbc.Row([
         dbc.Col(dcc.Loading(html.Div(id='price-chart')), md=12),
     ], className="mb-4"),
-    
+   
     # Charts Row 2: Volume + Volatility
     dbc.Row([
         dbc.Col(dcc.Loading(html.Div(id='volume-chart')), md=6),
         dbc.Col(dcc.Loading(html.Div(id='volatility-chart')), md=6),
     ], className="mb-4"),
-    
+   
     # Charts Row 3: Momentum + MA
     dbc.Row([
         dbc.Col(dcc.Loading(html.Div(id='momentum-chart')), md=6),
         dbc.Col(dcc.Loading(html.Div(id='ma-chart')), md=6),
     ], className="mb-4"),
-    
+   
     # Charts Row 4: Returns Dist
     dbc.Row([
         dbc.Col(dcc.Loading(html.Div(id='returns-dist-chart')), md=12),
     ], className="mb-4"),
-    
+   
     # Summary Stats
     dbc.Row([
         dbc.Col(html.Div(id='summary-stats'), md=12)
@@ -243,7 +241,7 @@ def create_macro_inputs():
     return inputs
 prediction_layout = dbc.Container([
     html.H2([html.I(className="fas fa-magic me-2"), "AI-Powered Prediction Engine"], className="mb-4"),
-    
+   
     dbc.Row([
         # Left: Inputs
         dbc.Col([
@@ -304,7 +302,7 @@ def set_ticker_from_url(search):
 )
 def update_market_overview(n):
     market_data = get_market_overview()
-    
+   
     cards = []
     for name, data in market_data.items():
         color = 'success' if data['change'] >= 0 else 'danger'
@@ -323,7 +321,7 @@ def update_market_overview(n):
             ], className="shadow-sm")
         ], md=4)
         cards.append(card)
-    
+   
     return cards
 @app.callback(
     Output('search-results', 'children'),
@@ -333,12 +331,12 @@ def update_market_overview(n):
 def live_search(n_clicks, search_value):
     if not search_value or len(search_value) < 2:
         return ""
-    
+   
     results = search_stocks(search_value)
-    
+   
     if not results:
         return dbc.Alert("No results found", color="info")
-    
+   
     result_cards = []
     for stock in results:
         card = dbc.Col([
@@ -350,14 +348,12 @@ def live_search(n_clicks, search_value):
                         html.Small(f"{stock['type']} | {stock['region']}", className="text-secondary")
                     ]),
                     dbc.Button("Analyze", href=f"/analysis?ticker={stock['symbol']}",
-                                 color="primary", size="sm", className="w-100")
+                               color="primary", size="sm", className="w-100")
                 ])
             ], className="h-100")
         ], md=3, className="mb-3")
         result_cards.append(card)
-    
-    # NOTE: The get_company_overview call from the analysis page is the one 
-    # that has the enforced 15s sleep. We will add a warning to the success alert there.
+   
     return dbc.Row(result_cards)
 # =============================================================================
 # 10. ANALYSIS PAGE CALLBACKS (Fixed Volume Separation + Hover Templates)
@@ -380,13 +376,11 @@ def live_search(n_clicks, search_value):
 def update_analysis(n_clicks, ticker):
     if not n_clicks or not ticker:
         return [""] * 9
-    
+   
     ticker = ticker.upper()
-    
+   
     try:
         # Validate ticker
-        # NOTE: This call to yfinance can still fail if the connection is slow,
-        # but is generally not rate-limited like Alpha Vantage.
         yf_ticker = yf.Ticker(ticker)
         if not yf_ticker.info:
             return [dbc.Alert(f"Invalid ticker: {ticker}", color="danger")] + [""] * 8
@@ -397,14 +391,12 @@ def update_analysis(n_clicks, ticker):
             return [dbc.Alert(f"No data for {ticker}", color="danger")] + [""] * 8
         
         df_features = calculate_technical_features(df.copy())
-        
+       
         if len(df_features) == 0:
             return [dbc.Alert("Insufficient history", color="warning")] + [""] * 8
         
-        # Company Info Card - This calls the rate-limited Alpha Vantage function.
-        # The 15-second delay is handled in the data_processor, but the UI freezes here.
-        company_info = get_company_overview(ticker) 
-        
+        # Company Info Card
+        company_info = get_company_overview(ticker)
         info_card = dbc.Card([
             dbc.CardBody([
                 dbc.Row([
@@ -422,8 +414,11 @@ def update_analysis(n_clicks, ticker):
                 ])
             ])
         ], color="light", className="mb-3")
-        
+       
         # Chart 1: Candlestick Price Chart
+        # Candlestick hovertemplate is not supported on Candlestick traces
+        # in some plotly versions. Build per-point hovertext instead and use
+        # the hovertext property which Candlestick accepts.
         price_hovertext = [
             f"<b>Open</b>: {o:.2f}<br><b>High</b>: {h:.2f}<br><b>Low</b>: {l:.2f}<br><b>Close</b>: {c:.2f}"
             for o, h, l, c in zip(df['Open'], df['High'], df['Low'], df['Close'])
@@ -445,7 +440,7 @@ def update_analysis(n_clicks, ticker):
             height=CHART_HEIGHT * 1.5,
             template='plotly_white'
         )
-        
+       
         # Chart 2: Volume Chart
         colors = ['red' if row['Close'] < row['Open'] else 'green' for _, row in df.iterrows()]
         fig_volume = go.Figure(go.Bar(
@@ -457,7 +452,7 @@ def update_analysis(n_clicks, ticker):
             template='plotly_white',
             height=CHART_HEIGHT
         )
-        
+       
         # Chart 3: Volatility Chart
         fig_volatility = go.Figure()
         fig_volatility.add_trace(go.Scatter(
@@ -472,7 +467,7 @@ def update_analysis(n_clicks, ticker):
             template='plotly_white',
             height=CHART_HEIGHT
         )
-        
+       
         # Chart 4: Momentum Chart (RSI)
         fig_momentum = go.Figure()
         fig_momentum.add_trace(go.Scatter(
@@ -489,7 +484,7 @@ def update_analysis(n_clicks, ticker):
             template='plotly_white',
             height=CHART_HEIGHT
         )
-        
+       
         # Chart 5: Moving Averages
         fig_ma = go.Figure()
         fig_ma.add_trace(go.Scatter(x=df_features.index, y=df['Close'], name='Price'))
@@ -500,7 +495,7 @@ def update_analysis(n_clicks, ticker):
             template='plotly_white',
             height=CHART_HEIGHT
         )
-        
+       
         # Chart 6: Returns Distribution
         returns = df['Close'].pct_change().dropna()
         fig_dist = go.Figure()
@@ -516,7 +511,7 @@ def update_analysis(n_clicks, ticker):
             template='plotly_white',
             height=CHART_HEIGHT
         )
-        
+       
         # Summary Statistics
         summary_stats = dbc.Card([
             dbc.CardBody([
@@ -542,17 +537,9 @@ def update_analysis(n_clicks, ticker):
                 ])
             ])
         ])
-        
-        # --- FIX: Update status message to inform user about the delay ---
-        status_message = dbc.Alert([
-            html.Strong("Analysis Complete! "),
-            "Note: The 'Company Overview' section relies on a free API key. To avoid rate limits, a deliberate ",
-            html.Strong("15-second delay is imposed"),
-            " on fundamental data fetches (like this one). Future requests may also experience this delay."
-        ], color="info")
-        
+       
         return [
-            status_message,
+            dbc.Alert(f"Analysis complete for {ticker}", color="success"),
             info_card,
             dcc.Graph(figure=fig_price),
             dcc.Graph(figure=fig_volume),
@@ -562,17 +549,16 @@ def update_analysis(n_clicks, ticker):
             dcc.Graph(figure=fig_dist),
             summary_stats
         ]
-        
+       
     except Exception as e:
-        # A generic error handler is kept, but the API error should now be mostly prevented
-        return [dbc.Alert(f"An unexpected error occurred: {str(e)}", color="danger")] + [""] * 8
+        return [dbc.Alert(f"Error: {str(e)}", color="danger")] + [""] * 8
 # =============================================================================
 # 11. PREDICTION PAGE CALLBACKS (Fixed Auto-Load + Added Interactive Forecast Plot)
 # =============================================================================
 # Helper function for forecast plot
 def create_forecast_plot(df, returns_pred, current_price):
     fig = go.Figure()
-    
+   
     # Historical (last 30 days)
     hist_start = max(len(df)-30, 0)
     hist_dates = df.index[hist_start:]
@@ -582,7 +568,7 @@ def create_forecast_plot(df, returns_pred, current_price):
         line=dict(color='blue'),
         hovertemplate='<b>Date</b>: %{x}<br><b>Price</b>: $%{y:.2f}<extra></extra>'
     ))
-    
+   
     # Forecast (10 days)
     last_date = df.index[-1]
     future_dates = pd.date_range(start=last_date + pd.Timedelta(1, 'D'), periods=10, freq='B')  # Business days
@@ -595,7 +581,7 @@ def create_forecast_plot(df, returns_pred, current_price):
         line=dict(color='red', dash='dash'),
         hovertemplate='<b>Date</b>: %{x}<br><b>Forecast Price</b>: $%{y:.2f}<extra></extra>'
     ))
-    
+   
     fig.update_layout(
         title='10-Day Price Forecast',
         xaxis_title='Date',
@@ -604,7 +590,7 @@ def create_forecast_plot(df, returns_pred, current_price):
         height=CHART_HEIGHT * 1.2,
         hovermode='x unified'
     )
-    
+   
     return fig
 @app.callback(
     [Output('prediction-status', 'children'),
@@ -637,9 +623,9 @@ def run_prediction(n_clicks, auto_clicks, ticker, *macro_values):
             return float(default)
     if not ctx.triggered:
         return [""] + [""] + [None] * len(MACRO_FEATURES)
-    
+   
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    
+   
     # Auto-load macro data
     if button_id == 'auto-macro-btn':
         macro_data = fetch_macro_data()
@@ -655,7 +641,7 @@ def run_prediction(n_clicks, auto_clicks, ticker, *macro_values):
                 raw = macro_values[i] if i < len(macro_values) else None
             input_values.append(_to_float_or_default(raw, MACRO_DEFAULTS[feature]))
         return [status, "", *input_values]
-    
+   
     # Prediction run
     if not n_clicks or not ticker or not MODELS_LOADED:
         if not MODELS_LOADED:
@@ -663,7 +649,7 @@ def run_prediction(n_clicks, auto_clicks, ticker, *macro_values):
         else:
             status = ""
         return [status, ""] + [None] * len(MACRO_FEATURES)
-    
+   
     try:
         ticker = ticker.upper()
         df = fetch_stock_data(ticker)
@@ -733,7 +719,7 @@ def run_prediction(n_clicks, auto_clicks, ticker, *macro_values):
             line=dict(color='orange'), hovertemplate='<b>Date</b>: %{x}<br><b>Vol</b>: %{y:.2%}<extra></extra>'
         ))
         fig_vol.add_hline(y=volatility_pred, line_dash="dash", line_color="red",
-                              annotation_text=f'Predicted 10d Vol: {volatility_pred:.2%}')
+                          annotation_text=f'Predicted 10d Vol: {volatility_pred:.2%}')
         fig_vol.update_layout(
             title='Volatility Trend & Prediction (XGBoost)',
             yaxis_title='Volatility', template='plotly_white', height=CHART_HEIGHT, hovermode='x unified'
