@@ -5,11 +5,12 @@ import yfinance as yf
 import requests
 from alpha_vantage.timeseries import TimeSeries
 from alpha_vantage.fundamentaldata import FundamentalData
-
+import os # Import the OS module
+from dotenv import load_dotenv
 # =============================================================================
 # ALPHA VANTAGE SETUP
 # =============================================================================
-ALPHA_VANTAGE_API_KEY = 'YOUR_API_KEY_HERE'  # Get free key from https://www.alphavantage.co/support/#api-key
+ALPHA_VANTAGE_API_KEY = os.getenv('ALPHA_VANTAGE_API_KEY')  # Get free key from https://www.alphavantage.co/support/#api-key
 
 # =============================================================================
 # 1. LIVE STOCK SEARCH
