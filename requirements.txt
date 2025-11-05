@@ -14,3 +14,4 @@ hmmlearn==0.3.3
 dash
 dash-bootstrap-components
 gunicorn
+alpha_vantage 
