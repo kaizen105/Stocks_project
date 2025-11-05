@@ -1,0 +1,14 @@
+echo "__pycache__/
+*.pyc
+*.pyo
+*.ipynb_checkpoints/
+.env
+*.db
+*.csv
+*.xlsx
+data/
+powerbi/
+notebooks/
+excel/
+sql/
+.venv/" > .gitignore
