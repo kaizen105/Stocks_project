@@ -5,6 +5,7 @@ import yfinance as yf
 import requests
 from alpha_vantage.timeseries import TimeSeries
 from alpha_vantage.fundamentaldata import FundamentalData
+import time  # <-- NEW: Required for adding delays
 
 # =============================================================================
 # ALPHA VANTAGE SETUP
@@ -19,6 +20,9 @@ def search_stocks(keywords):
     Search for stocks using Alpha Vantage SYMBOL_SEARCH
     Returns: List of dicts with symbol, name, type, region
     """
+    # FIX: Alpha Vantage free tier is limited to 5 calls/minute. 
+    # Adding a 15-second sleep to respect the rate limit before the API call.
+    time.sleep(15)
     try:
         url = f'https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords={keywords}&apikey={ALPHA_VANTAGE_API_KEY}'
         response = requests.get(url)
@@ -48,6 +52,8 @@ def get_market_overview():
     Fetch live market indices data
     Returns: Dict with S&P500, NASDAQ, DOW data
     """
+    # This section uses yfinance, which is generally not rate-limited like Alpha Vantage.
+    # No change needed here.
     try:
         indices = {
             'SPY': 'S&P 500',
@@ -86,6 +92,8 @@ def get_company_overview(ticker):
     """
     Fetch company fundamentals using Alpha Vantage
     """
+    # FIX: Alpha Vantage call (limited to 5 per minute). Adding delay.
+    time.sleep(15)
     try:
         fd = FundamentalData(key=ALPHA_VANTAGE_API_KEY, output_format='pandas')
         data, _ = fd.get_company_overview(ticker)
@@ -115,9 +123,11 @@ def fetch_stock_data(ticker, days_needed=252, use_alpha_vantage=False):
     """
     end_date = datetime.now().strftime('%Y-%m-%d')
     start_date = (datetime.now() - timedelta(days=int(days_needed * 1.5))).strftime('%Y-%m-%d')
-   
+    
     try:
         if use_alpha_vantage:
+            # FIX: Alpha Vantage call (limited to 5 per minute). Adding delay.
+            time.sleep(15) 
             # Use Alpha Vantage for data
             ts = TimeSeries(key=ALPHA_VANTAGE_API_KEY, output_format='pandas')
             data, _ = ts.get_daily(symbol=ticker, outputsize='full')
@@ -126,7 +136,7 @@ def fetch_stock_data(ticker, days_needed=252, use_alpha_vantage=False):
             data = data.sort_index()
             data = data[data.index >= start_date]
         else:
-            # Use yfinance (default)
+            # Use yfinance (default) - No rate limit required.
             data = yf.download(ticker, start=start_date, end=end_date, progress=False)
             
             if data.empty:
@@ -164,32 +174,32 @@ def calculate_technical_features(df):
     df['Log_Return'] = np.log(df['Close'] / df['Close'].shift(1))
     df['Realized_Vol_10d'] = df['Log_Return'].rolling(window=10).std() * np.sqrt(252)
     df['Realized_Vol_20d'] = df['Log_Return'].rolling(window=20).std() * np.sqrt(252)
-   
+    
     df['MA_20'] = df['Close'].rolling(window=20).mean()
     df['MA_50'] = df['Close'].rolling(window=50).mean()
     df['MA_200'] = df['Close'].rolling(window=200).mean()
     df['Volume_MA_20'] = df['Volume'].rolling(window=20).mean()
-   
+    
     df['Price_Range'] = df['High'] - df['Low']
     price_range_pct_calc = df['Price_Range'].div(df['Close'].shift(1))
     if isinstance(price_range_pct_calc, pd.DataFrame) and price_range_pct_calc.shape[1] == 1:
         price_range_pct_calc = price_range_pct_calc.squeeze()
     df['Price_Range_Pct'] = price_range_pct_calc.replace([np.inf, -np.inf], 0).astype(float)
-   
+    
     df['Volume_Ratio'] = df['Volume'].div(df['Volume'].shift(1)).replace([np.inf, -np.inf], 0).astype(float)
     df['Momentum_5d'] = df['Close'].pct_change(periods=5).astype(float)
-   
+    
     df['Momentum_20d'] = df['Close'].pct_change(periods=20).astype(float)
     df['Momentum_60d'] = df['Close'].pct_change(periods=60).astype(float)
-   
+    
     df['Momentum_Ratio_S_M'] = df['Momentum_5d'].div(df['Momentum_20d']).replace([np.inf, -np.inf], 0).astype(float)
     df['Momentum_Ratio_M_L'] = df['Momentum_20d'].div(df['Momentum_60d']).replace([np.inf, -np.inf], 0).astype(float)
-   
+    
     df['Volatility_Ratio'] = df['Realized_Vol_10d'].div(df['Realized_Vol_20d']).replace([np.inf, -np.inf], 0).astype(float)
-   
+    
     for i in range(1, 4):
         df[f'Return_Pct_lag_{i}'] = df['Return_Pct'].shift(i).astype(float)
-       
+        
     std_20 = df['Close'].rolling(window=20).std()
     zscore_calc = (df['Close'] - df['MA_20']).div(std_20)
     if isinstance(zscore_calc, pd.DataFrame) and zscore_calc.shape[1] == 1:
@@ -222,6 +232,8 @@ def calculate_technical_features(df):
 # =============================================================================
 def fetch_macro_data():
     """Fetches latest macro data"""
+    # This section uses yfinance, which is generally not rate-limited like Alpha Vantage.
+    # No change needed here.
     macro_defaults = {
         'Fed_Funds_Rate': 3.90,
         'CPI': 3.0,
@@ -250,16 +262,16 @@ def fetch_macro_data():
 def prepare_model_input(df_features, macro_inputs):
     """Prepares final model input"""
     latest_data = df_features.tail(1).copy()
-   
+    
     if latest_data.empty:
         raise ValueError("Insufficient data for features")
         
     for feature, value in macro_inputs.items():
         latest_data[feature] = float(value)
-   
+    
     hmm_input_features = ['Return_Pct', 'Realized_Vol_10d']
     hmm_input = latest_data[hmm_input_features].values
-   
+    
     xgb_features = [
         'Ticker', 'Open', 'High', 'Low', 'Close', 'Volume', 'Return_Pct',
         'Price_Range', 'Price_Range_Pct', 'Realized_Vol_10d', 'Realized_Vol_20d',
@@ -269,7 +281,7 @@ def prepare_model_input(df_features, macro_inputs):
         'Momentum_Ratio_S_M', 'Momentum_Ratio_M_L', 'Volatility_Ratio',
         'Price_ZScore'
     ]
-   
+    
     xgb_input = latest_data[xgb_features]
-   
+    
     return hmm_input, xgb_input
