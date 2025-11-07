@@ -11,6 +11,8 @@ import os
 import warnings
 from datetime import datetime, timedelta
 import yfinance as yf
+from dash_extensions.caching import Cache, FileSystemStore # <--- MODIFIED 1: Added import
+
 warnings.filterwarnings('ignore')
 # Required imports for model loading
 import xgboost
@@ -91,6 +93,15 @@ app = dash.Dash(
     suppress_callback_exceptions=True
 )
 server = app.server
+
+# <--- MODIFIED 2: Initialize the cache ---
+cache = Cache(app.server, config={
+    'CACHE_TYPE': 'FileSystemCache',
+    # This folder will be created to store cache files
+    'CACHE_DIR': 'app-cache-directory' 
+})
+# ----------------------------------------
+
 # =============================================================================
 # 3. NAVBAR
 # =============================================================================
@@ -335,12 +346,33 @@ def live_search(n_clicks, search_value):
                         html.Small(f"{stock['type']} | {stock['region']}", className="text-secondary")
                     ]),
                     dbc.Button("Analyze", href=f"/analysis?ticker={stock['symbol']}",
-                                 color="primary", size="sm", className="w-100")
+                                color="primary", size="sm", className="w-100")
                 ])
             ], className="h-100")
         ], md=3, className="mb-3")
         result_cards.append(card)
     return dbc.Row(result_cards)
+
+# <--- MODIFIED 3: Added new cached helper function ---
+@cache.memoize(timeout=300) # Caches for 300 seconds (5 minutes)
+def get_yfinance_info(ticker):
+    """
+    Safely fetches and caches yf.Ticker.info data.
+    Returns None if the ticker is invalid.
+    """
+    print(f"--- [Cache MISS] Fetching yf.info for {ticker} ---")
+    try:
+        yf_ticker = yf.Ticker(ticker)
+        info = yf_ticker.info
+        # Check for a valid price to confirm it's a real ticker
+        if info and info.get('regularMarketPrice') is not None:
+            return info
+        return None
+    except Exception as e:
+        print(f"Error fetching yf.info for {ticker}: {e}")
+        return None
+# ----------------------------------------------------
+
 # =============================================================================
 # 10. ANALYSIS PAGE CALLBACKS (DEBUGGED)
 # =============================================================================
@@ -367,12 +399,14 @@ def update_analysis(n_clicks, ticker):
     ticker = ticker.upper()
     
     try:
-        print(f"Step 1: Validating ticker with yf.Ticker('{ticker}')...")
-        yf_ticker = yf.Ticker(ticker)
-        # Check .info as a simple validation
-        if not yf_ticker.info or yf_ticker.info.get('regularMarketPrice') is None:
-            print("Step 1 FAILED: Ticker validation failed.")
+        # <--- MODIFIED 4: Replaced direct .info call with cached function ---
+        print(f"Step 1: Validating ticker via cache...")
+        ticker_info = get_yfinance_info(ticker)
+        
+        if not ticker_info:
+            print("Step 1 FAILED: Ticker validation failed or is invalid.")
             return [dbc.Alert(f"Invalid or delisted ticker: {ticker}", color="danger")] + [""] * 8
+        # --- END OF MODIFICATION ---
         
         print(f"Step 2: Ticker valid. Fetching stock data...")
         df = fetch_stock_data(ticker, days_needed=252)
