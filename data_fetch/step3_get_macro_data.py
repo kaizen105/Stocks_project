@@ -10,8 +10,7 @@ import os
 # ==============================================================================
 # --- CONFIGURATION ---
 # ==============================================================================
-ALPHA_VANTAGE_API_KEY = '6RTZP2WX16TXZ8G3'
-FRED_API_KEY = '6a685736008918f95526f561e6b05b77'
+ALPHA_VANTAGE_API_KEY = os.getenv('ALPHA_VANTAGE_API_KEY')
 ALL_TICKERS = ['AAPL', 'GOOGL', 'MSFT'] # Using the 3 tickers as requested
 YEARS_OF_DATA = 15
 

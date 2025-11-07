@@ -17,7 +17,7 @@ import xgboost
 import hmmlearn
 from hmmlearn.hmm import GaussianHMM
 # Import data processor
-from app.data_processor import (
+from data_processor import (
     fetch_stock_data,
     calculate_technical_features,
     prepare_model_input,
@@ -36,8 +36,10 @@ print("--- Loading models... ---")
 try:
     MODELS = {
         "hmm": joblib.load(os.path.join(APP_DIR, 'hmm_regime_classifier_v1.joblib')),
+        # This model predicts NEXT-DAY volatility
         "volatility": joblib.load(os.path.join(APP_DIR, 'volatility_xgb_no_persistence_v1.joblib')),
-        "returns_10d": joblib.load(os.path.join(APP_DIR, 'returns_xgb_global_tuned_v1.joblib'))
+        # This model predicts NEXT-DAY return
+        "returns_1d": joblib.load(os.path.join(APP_DIR, 'returns_xgb_global_tuned_v1.joblib'))
     }
     MODELS_LOADED = True
     print("✅ Models loaded")
@@ -51,6 +53,35 @@ MACRO_DEFAULTS = {
     'GDP': 4.0, 'Yield_Curve_10Y_2Y': 0.52, 'VIX': 16.37
 }
 CHART_HEIGHT = 400
+# A larger set of popular tickers (used to generate the Popular Stocks cards)
+POPULAR_TICKERS = [
+    'AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'NVDA', 'META', 'BRK-B', 'JPM',
+    'V', 'MA', 'DIS', 'NFLX', 'XOM', 'PFE', 'INTC', 'ORCL', 'BABA', 'BAC', 'CSCO'
+]
+
+def create_popular_cards():
+    """Builds a responsive row of popular stock cards using COMPANY_CACHE when available."""
+    colors = ['primary', 'success', 'info', 'danger', 'warning', 'secondary', 'dark']
+    cols = []
+    for i, symbol in enumerate(POPULAR_TICKERS):
+        # Try to get the company name from the cache via get_company_overview
+        try:
+            company = get_company_overview(symbol).get('Name', '')
+        except Exception:
+            company = ''
+
+        color = colors[i % len(colors)]
+        cols.append(
+            dbc.Col(dbc.Card([
+                dbc.CardBody([
+                    html.H5(symbol, className=f"text-{color}"),
+                    html.P(company, className="text-muted small"),
+                    dbc.Button("Analyze", href=f"/analysis?ticker={symbol}", color=color, size="sm", className="w-100")
+                ])
+            ], className="h-100"), md=2, className="mb-3")
+        )
+
+    return dbc.Row(cols)
 # =============================================================================
 # 2. APP INITIALIZATION
 # =============================================================================
@@ -85,7 +116,7 @@ home_layout = dbc.Container([
             html.Div([
                 html.H1("📈 Stock Prediction Platform", className="display-3 text-white mb-4"),
                 html.P("Real-time stock analysis with AI-powered predictions and live market data",
-                       className="lead text-white-50 mb-4"),
+                        className="lead text-white-50 mb-4"),
                 dbc.Button("Start Analyzing", href="/analysis", color="light", size="lg", className="me-3"),
                 dbc.Button("Run Predictions", href="/prediction", color="outline-light", size="lg")
             ], style={
@@ -97,11 +128,11 @@ home_layout = dbc.Container([
             })
         ])
     ], className="mb-5"),
-   
+    
     # Live Market Overview
     html.H3([html.I(className="fas fa-globe me-2"), "Live Market Overview"], className="mb-4"),
     dbc.Row(id='market-overview-cards', className="mb-5"),
-   
+    
     # Live Stock Search
     html.H3([html.I(className="fas fa-search me-2"), "Real-Time Stock Search"], className="mb-4"),
     dbc.Card([
@@ -122,60 +153,17 @@ home_layout = dbc.Container([
             html.Div(id='search-results', className="mt-3")
         ])
     ], className="mb-5"),
-   
-    # Popular Stocks
+    
+    # Popular Stocks (dynamically generated)
     html.H3([html.I(className="fas fa-star me-2"), "Popular Stocks"], className="mb-4"),
-    dbc.Row([
-        dbc.Col(dbc.Card([
-            dbc.CardBody([
-                html.H5("AAPL", className="text-primary"),
-                html.P("Apple Inc.", className="text-muted small"),
-                dbc.Button("Analyze", href="/analysis?ticker=AAPL", color="primary", size="sm")
-            ])
-        ]), md=2),
-        dbc.Col(dbc.Card([
-            dbc.CardBody([
-                html.H5("GOOGL", className="text-success"),
-                html.P("Alphabet Inc.", className="text-muted small"),
-                dbc.Button("Analyze", href="/analysis?ticker=GOOGL", color="success", size="sm")
-            ])
-        ]), md=2),
-        dbc.Col(dbc.Card([
-            dbc.CardBody([
-                html.H5("MSFT", className="text-info"),
-                html.P("Microsoft Corp.", className="text-muted small"),
-                dbc.Button("Analyze", href="/analysis?ticker=MSFT", color="info", size="sm")
-            ])
-        ]), md=2),
-        dbc.Col(dbc.Card([
-            dbc.CardBody([
-                html.H5("TSLA", className="text-danger"),
-                html.P("Tesla Inc.", className="text-muted small"),
-                dbc.Button("Analyze", href="/analysis?ticker=TSLA", color="danger", size="sm")
-            ])
-        ]), md=2),
-        dbc.Col(dbc.Card([
-            dbc.CardBody([
-                html.H5("AMZN", className="text-warning"),
-                html.P("Amazon.com Inc.", className="text-muted small"),
-                dbc.Button("Analyze", href="/analysis?ticker=AMZN", color="warning", size="sm")
-            ])
-        ]), md=2),
-        dbc.Col(dbc.Card([
-            dbc.CardBody([
-                html.H5("NVDA", className="text-secondary"),
-                html.P("NVIDIA Corp.", className="text-muted small"),
-                dbc.Button("Analyze", href="/analysis?ticker=NVDA", color="secondary", size="sm")
-            ])
-        ]), md=2),
-    ])
+    create_popular_cards(),
 ], fluid=True, className="py-4")
 # =============================================================================
-# 5. ANALYSIS PAGE LAYOUT (Enhanced - Separated Volume)
+# 5. ANALYSIS PAGE LAYOUT
 # =============================================================================
 analysis_layout = dbc.Container([
     html.H2([html.I(className="fas fa-chart-bar me-2"), "Advanced Stock Analysis"], className="mb-4"),
-   
+    
     # Search Bar
     dbc.Card([
         dbc.CardBody([
@@ -185,49 +173,49 @@ analysis_layout = dbc.Container([
             ])
         ])
     ], className="mb-4"),
-   
+    
     # Status
     html.Div(id='analysis-status'),
-   
+    
     # Company Info Card
     dbc.Row([
         dbc.Col(html.Div(id='company-info-card'), md=12)
     ], className="mb-4"),
-   
+    
+    # ... (all your chart rows) ...
     # Charts Row 1: Price Chart
     dbc.Row([
         dbc.Col(dcc.Loading(html.Div(id='price-chart')), md=12),
     ], className="mb-4"),
-   
+    
     # Charts Row 2: Volume + Volatility
     dbc.Row([
         dbc.Col(dcc.Loading(html.Div(id='volume-chart')), md=6),
         dbc.Col(dcc.Loading(html.Div(id='volatility-chart')), md=6),
     ], className="mb-4"),
-   
+    
     # Charts Row 3: Momentum + MA
     dbc.Row([
         dbc.Col(dcc.Loading(html.Div(id='momentum-chart')), md=6),
         dbc.Col(dcc.Loading(html.Div(id='ma-chart')), md=6),
     ], className="mb-4"),
-   
+    
     # Charts Row 4: Returns Dist
     dbc.Row([
         dbc.Col(dcc.Loading(html.Div(id='returns-dist-chart')), md=12),
     ], className="mb-4"),
-   
+    
     # Summary Stats
     dbc.Row([
         dbc.Col(html.Div(id='summary-stats'), md=12)
     ])
 ], fluid=True)
 # =============================================================================
-# 6. PREDICTION PAGE LAYOUT (Enhanced with Interactive Elements)
+# 6. PREDICTION PAGE LAYOUT
 # =============================================================================
 def create_macro_inputs():
     inputs = []
     for feature in MACRO_FEATURES:
-        # Add tooltip for better UX
         tooltip = dbc.Tooltip(f"Enter expected {feature.replace('_', ' ').lower()}", target=f"tooltip-{feature}")
         row = dbc.Row([
             dbc.Label([
@@ -239,9 +227,10 @@ def create_macro_inputs():
         inputs.append(row)
         inputs.append(tooltip)
     return inputs
+
 prediction_layout = dbc.Container([
     html.H2([html.I(className="fas fa-magic me-2"), "AI-Powered Prediction Engine"], className="mb-4"),
-   
+    
     dbc.Row([
         # Left: Inputs
         dbc.Col([
@@ -285,6 +274,7 @@ def display_page(pathname):
     elif pathname == '/prediction':
         return prediction_layout
     return home_layout
+
 @app.callback(
     Output('ticker-input', 'value'),
     Input('url', 'search')
@@ -301,13 +291,12 @@ def set_ticker_from_url(search):
     Input('market-update-interval', 'n_intervals')
 )
 def update_market_overview(n):
+    # This function is fine, uses yfinance for live data
     market_data = get_market_overview()
-   
     cards = []
     for name, data in market_data.items():
         color = 'success' if data['change'] >= 0 else 'danger'
         icon = 'fa-arrow-up' if data['change'] >= 0 else 'fa-arrow-down'
-        
         card = dbc.Col([
             dbc.Card([
                 dbc.CardBody([
@@ -321,22 +310,20 @@ def update_market_overview(n):
             ], className="shadow-sm")
         ], md=4)
         cards.append(card)
-   
     return cards
+
 @app.callback(
     Output('search-results', 'children'),
     [Input('search-btn', 'n_clicks'), Input('live-search-input', 'value')],
     prevent_initial_call=True
 )
 def live_search(n_clicks, search_value):
+    # This function is fine, uses the rate-limited search
     if not search_value or len(search_value) < 2:
         return ""
-   
     results = search_stocks(search_value)
-   
     if not results:
         return dbc.Alert("No results found", color="info")
-   
     result_cards = []
     for stock in results:
         card = dbc.Col([
@@ -348,15 +335,14 @@ def live_search(n_clicks, search_value):
                         html.Small(f"{stock['type']} | {stock['region']}", className="text-secondary")
                     ]),
                     dbc.Button("Analyze", href=f"/analysis?ticker={stock['symbol']}",
-                               color="primary", size="sm", className="w-100")
+                                 color="primary", size="sm", className="w-100")
                 ])
             ], className="h-100")
         ], md=3, className="mb-3")
         result_cards.append(card)
-   
     return dbc.Row(result_cards)
 # =============================================================================
-# 10. ANALYSIS PAGE CALLBACKS (Fixed Volume Separation + Hover Templates)
+# 10. ANALYSIS PAGE CALLBACKS (DEBUGGED)
 # =============================================================================
 @app.callback(
     [
@@ -376,27 +362,40 @@ def live_search(n_clicks, search_value):
 def update_analysis(n_clicks, ticker):
     if not n_clicks or not ticker:
         return [""] * 9
-   
+    
+    print(f"\n--- [Analysis Callback Triggered] Ticker: {ticker} ---")
     ticker = ticker.upper()
-   
+    
     try:
-        # Validate ticker
+        print(f"Step 1: Validating ticker with yf.Ticker('{ticker}')...")
         yf_ticker = yf.Ticker(ticker)
-        if not yf_ticker.info:
-            return [dbc.Alert(f"Invalid ticker: {ticker}", color="danger")] + [""] * 8
+        # Check .info as a simple validation
+        if not yf_ticker.info or yf_ticker.info.get('regularMarketPrice') is None:
+            print("Step 1 FAILED: Ticker validation failed.")
+            return [dbc.Alert(f"Invalid or delisted ticker: {ticker}", color="danger")] + [""] * 8
         
-        # Fetch data
+        print(f"Step 2: Ticker valid. Fetching stock data...")
         df = fetch_stock_data(ticker, days_needed=252)
         if df.empty:
+            print("Step 2 FAILED: fetch_stock_data returned an empty DataFrame.")
             return [dbc.Alert(f"No data for {ticker}", color="danger")] + [""] * 8
         
+        print("Step 3: Data fetched. Calculating technical features...")
         df_features = calculate_technical_features(df.copy())
-       
+        
         if len(df_features) == 0:
+            print("Step 3 FAILED: Feature calculation resulted in empty data.")
             return [dbc.Alert("Insufficient history", color="warning")] + [""] * 8
         
-        # Company Info Card
+        print("Step 4: Features calculated. Getting company overview from CACHE...")
+        # This now reads from the JSON cache, so it's instant
         company_info = get_company_overview(ticker)
+        
+        if not company_info:
+            print(f"Step 4 WARNING: No cache data for {ticker}. Proceeding with N/A.")
+            company_info = {} # Ensure it's a dict
+        
+        print("Step 5: Building info card...")
         info_card = dbc.Card([
             dbc.CardBody([
                 dbc.Row([
@@ -414,105 +413,71 @@ def update_analysis(n_clicks, ticker):
                 ])
             ])
         ], color="light", className="mb-3")
-       
+        
+        print("Step 6: Building charts...")
         # Chart 1: Candlestick Price Chart
-        # Candlestick hovertemplate is not supported on Candlestick traces
-        # in some plotly versions. Build per-point hovertext instead and use
-        # the hovertext property which Candlestick accepts.
         price_hovertext = [
             f"<b>Open</b>: {o:.2f}<br><b>High</b>: {h:.2f}<br><b>Low</b>: {l:.2f}<br><b>Close</b>: {c:.2f}"
             for o, h, l, c in zip(df['Open'], df['High'], df['Low'], df['Close'])
         ]
         fig_price = go.Figure(go.Candlestick(
             x=df.index,
-            open=df['Open'],
-            high=df['High'],
-            low=df['Low'],
-            close=df['Close'],
-            name='Price',
-            hovertext=price_hovertext,
-            hoverinfo='text'
+            open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'],
+            name='Price', hovertext=price_hovertext, hoverinfo='text'
         ))
         fig_price.update_layout(
-            title=f'{ticker} Price',
-            xaxis_rangeslider_visible=False,
-            showlegend=False,
-            height=CHART_HEIGHT * 1.5,
-            template='plotly_white'
+            title=f'{ticker} Price', xaxis_rangeslider_visible=False,
+            showlegend=False, height=CHART_HEIGHT * 1.5, template='plotly_white'
         )
-       
+        
         # Chart 2: Volume Chart
         colors = ['red' if row['Close'] < row['Open'] else 'green' for _, row in df.iterrows()]
         fig_volume = go.Figure(go.Bar(
             x=df.index, y=df['Volume'], name='Volume', marker_color=colors,
             hovertemplate='<b>Volume</b>: %{y:,.0f}<extra></extra>'
         ))
-        fig_volume.update_layout(
-            title='Trading Volume',
-            template='plotly_white',
-            height=CHART_HEIGHT
-        )
-       
+        fig_volume.update_layout(title='Trading Volume', template='plotly_white', height=CHART_HEIGHT)
+        
         # Chart 3: Volatility Chart
         fig_volatility = go.Figure()
         fig_volatility.add_trace(go.Scatter(
-            x=df_features.index,
-            y=df_features['rolling_std_20'],
-            name='20-day Volatility',
-            line=dict(color='orange'),
-            hovertemplate='<b>Volatility</b>: %{y:.2%}<extra></extra>'
+            x=df_features.index, y=df_features['rolling_std_20'],
+            name='20-day Volatility', line=dict(color='orange'),
+            hovertemplate='<b>Volatility</b>: %{y:.4f}<extra></extra>' # Changed to .4f
         ))
         fig_volatility.update_layout(
-            title='Rolling Volatility (20-day)',
-            template='plotly_white',
-            height=CHART_HEIGHT
+            title='Rolling Volatility (20-day)', template='plotly_white', height=CHART_HEIGHT
         )
-       
+        
         # Chart 4: Momentum Chart (RSI)
         fig_momentum = go.Figure()
         fig_momentum.add_trace(go.Scatter(
-            x=df_features.index,
-            y=df_features['RSI'],
-            name='RSI',
-            line=dict(color='purple'),
+            x=df_features.index, y=df_features['RSI'],
+            name='RSI', line=dict(color='purple'),
             hovertemplate='<b>RSI</b>: %{y:.2f}<extra></extra>'
         ))
         fig_momentum.add_hline(y=70, line_dash="dash", line_color="red", opacity=0.5, annotation_text="Overbought")
         fig_momentum.add_hline(y=30, line_dash="dash", line_color="green", opacity=0.5, annotation_text="Oversold")
-        fig_momentum.update_layout(
-            title='Relative Strength Index (RSI)',
-            template='plotly_white',
-            height=CHART_HEIGHT
-        )
-       
+        fig_momentum.update_layout(title='Relative Strength Index (RSI)', template='plotly_white', height=CHART_HEIGHT)
+        
         # Chart 5: Moving Averages
         fig_ma = go.Figure()
         fig_ma.add_trace(go.Scatter(x=df_features.index, y=df['Close'], name='Price'))
         fig_ma.add_trace(go.Scatter(x=df_features.index, y=df_features['MA50'], name='MA50'))
         fig_ma.add_trace(go.Scatter(x=df_features.index, y=df_features['MA200'], name='MA200'))
-        fig_ma.update_layout(
-            title='Moving Averages',
-            template='plotly_white',
-            height=CHART_HEIGHT
-        )
-       
+        fig_ma.update_layout(title='Moving Averages', template='plotly_white', height=CHART_HEIGHT)
+        
         # Chart 6: Returns Distribution
-        returns = df['Close'].pct_change().dropna()
+        returns = df_features['Return_Pct'].dropna() # Use features to respect dropna
         fig_dist = go.Figure()
         fig_dist.add_trace(go.Histogram(
-            x=returns,
-            nbinsx=50,
-            name='Returns Distribution',
-            hovertemplate='<b>Return</b>: %{x:.2%}<extra></extra>'
+            x=returns, nbinsx=50, name='Returns Distribution',
+            hovertemplate='<b>Return</b>: %{x:.2%}<extra></extra>' # This is fine as %
         ))
         fig_dist.add_vline(x=returns.mean(), line_dash="dash", line_color="red", annotation_text="Mean")
-        fig_dist.update_layout(
-            title='Daily Returns Distribution',
-            template='plotly_white',
-            height=CHART_HEIGHT
-        )
-       
-        # Summary Statistics
+        fig_dist.update_layout(title='Daily Returns Distribution', template='plotly_white', height=CHART_HEIGHT)
+        
+        print("Step 7: Building summary stats...")
         summary_stats = dbc.Card([
             dbc.CardBody([
                 dbc.Row([
@@ -524,9 +489,9 @@ def update_analysis(n_clicks, ticker):
                     ], md=4),
                     dbc.Col([
                         html.H6("Returns Statistics"),
-                        html.P(f"Daily Volatility: {returns.std()*100:.2f}%"),
-                        html.P(f"Annual Volatility: {returns.std()*np.sqrt(252)*100:.2f}%"),
-                        html.P(f"Sharpe Ratio: {(returns.mean()/returns.std())*np.sqrt(252):.2f}"),
+                        html.P(f"Daily Volatility (Std): {returns.std():.4f}"),
+                        html.P(f"Annual Volatility: {returns.std()*np.sqrt(252):.4f}"),
+                        html.P(f"Sharpe Ratio (Annualized): {(returns.mean()/returns.std())*np.sqrt(252):.2f}"),
                     ], md=4),
                     dbc.Col([
                         html.H6("Technical Indicators"),
@@ -537,7 +502,9 @@ def update_analysis(n_clicks, ticker):
                 ])
             ])
         ])
-       
+        
+        print("Step 8: All components built. Returning to browser.")
+        
         return [
             dbc.Alert(f"Analysis complete for {ticker}", color="success"),
             info_card,
@@ -549,16 +516,23 @@ def update_analysis(n_clicks, ticker):
             dcc.Graph(figure=fig_dist),
             summary_stats
         ]
-       
+        
     except Exception as e:
+        print("\n" + "="*50)
+        print("--- ANALYSIS CALLBACK CRASHED! ---")
+        print(f"An unexpected error occurred: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        print("="*50 + "\n")
         return [dbc.Alert(f"Error: {str(e)}", color="danger")] + [""] * 8
 # =============================================================================
-# 11. PREDICTION PAGE CALLBACKS (Fixed Auto-Load + Added Interactive Forecast Plot)
+# 11. PREDICTION PAGE CALLBACKS (*** THIS IS THE FINAL FIX ***)
 # =============================================================================
-# Helper function for forecast plot
-def create_forecast_plot(df, returns_pred, current_price):
+
+# --- FIX 1: Renamed function to reflect 1-DAY forecast ---
+def create_forecast_plot_1day(df, returns_pred, current_price):
     fig = go.Figure()
-   
+    
     # Historical (last 30 days)
     hist_start = max(len(df)-30, 0)
     hist_dates = df.index[hist_start:]
@@ -568,30 +542,32 @@ def create_forecast_plot(df, returns_pred, current_price):
         line=dict(color='blue'),
         hovertemplate='<b>Date</b>: %{x}<br><b>Price</b>: $%{y:.2f}<extra></extra>'
     ))
-   
-    # Forecast (10 days)
+    
+    # --- FIX 2: Only predict ONE business day into the future ---
     last_date = df.index[-1]
-    future_dates = pd.date_range(start=last_date + pd.Timedelta(1, 'D'), periods=10, freq='B')  # Business days
-    # Linear interpolation for future prices
-    future_returns = np.linspace(0, returns_pred, 10)
-    future_prices = current_price * (1 + future_returns)
+    future_date = pd.bdate_range(start=last_date, periods=2)[-1] # Next business day
+    predicted_price = current_price * (1 + returns_pred)
+    
     fig.add_trace(go.Scatter(
-        x=future_dates, y=future_prices,
-        name=f'Forecast ({returns_pred*100:+.1f}%)',
+        x=[last_date, future_date], 
+        y=[current_price, predicted_price],
+        name=f'Forecast ({returns_pred*100:+.2f}%)',
         line=dict(color='red', dash='dash'),
         hovertemplate='<b>Date</b>: %{x}<br><b>Forecast Price</b>: $%{y:.2f}<extra></extra>'
     ))
-   
+    
     fig.update_layout(
-        title='10-Day Price Forecast',
+        # --- FIX 3: Update title ---
+        title='Next-Day Price Forecast',
         xaxis_title='Date',
         yaxis_title='Price ($)',
         template='plotly_white',
         height=CHART_HEIGHT * 1.2,
         hovermode='x unified'
     )
-   
+    
     return fig
+
 @app.callback(
     [Output('prediction-status', 'children'),
      Output('prediction-output', 'children')] +
@@ -603,31 +579,26 @@ def create_forecast_plot(df, returns_pred, current_price):
 )
 def run_prediction(n_clicks, auto_clicks, ticker, *macro_values):
     ctx = dash.callback_context
-    # Helper to coerce various scalar/array-like values to float with default fallback
+    
     def _to_float_or_default(val, default):
-        if val is None:
-            return float(default)
-        # unwrap pandas Series, Index or array-like
+        if val is None: return float(default)
         if isinstance(val, (pd.Series, pd.Index, list, tuple, np.ndarray)):
-            try:
-                val = val[0]
-            except Exception:
-                return float(default)
+            try: val = val[0]
+            except Exception: return float(default)
         try:
             f = float(val)
-            # treat NaN as missing
-            if np.isnan(f):
-                return float(default)
+            if np.isnan(f): return float(default)
             return f
-        except Exception:
-            return float(default)
+        except Exception: return float(default)
+            
     if not ctx.triggered:
         return [""] + [""] + [None] * len(MACRO_FEATURES)
-   
+    
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-   
+    
     # Auto-load macro data
     if button_id == 'auto-macro-btn':
+        print("\n--- [Prediction Callback] Loading macro data... ---")
         macro_data = fetch_macro_data()
         if macro_data is None:
             status = dbc.Alert("Failed to fetch macro data", color="danger")
@@ -635,41 +606,51 @@ def run_prediction(n_clicks, auto_clicks, ticker, *macro_values):
         status = dbc.Alert("Macro data loaded successfully", color="success")
         input_values = []
         for i, feature in enumerate(MACRO_FEATURES):
-            # Prefer fetched macro data, then existing input value, then default
             raw = macro_data.get(feature, None)
             if raw is None:
                 raw = macro_values[i] if i < len(macro_values) else None
             input_values.append(_to_float_or_default(raw, MACRO_DEFAULTS[feature]))
         return [status, "", *input_values]
-   
+    
     # Prediction run
     if not n_clicks or not ticker or not MODELS_LOADED:
+        status = ""
         if not MODELS_LOADED:
             status = dbc.Alert("Models not loaded. Check console.", color="danger")
-        else:
-            status = ""
         return [status, ""] + [None] * len(MACRO_FEATURES)
-   
+    
+    print(f"\n--- [Prediction Callback Triggered] Ticker: {ticker} ---")
+
     try:
         ticker = ticker.upper()
+        print("Step 1: Fetching stock data for prediction...")
         df = fetch_stock_data(ticker)
         if df.empty:
+            print("Step 1 FAILED: No data found.")
             return [dbc.Alert(f"No data found for {ticker}", color="danger"), ""] + [None] * len(MACRO_FEATURES)
         
-        # Ensure macro_values are floats
         macro_dict = dict(zip(MACRO_FEATURES, [_to_float_or_default(v if (v is not None and v != '') else None, MACRO_DEFAULTS[f]) for v, f in zip(macro_values, MACRO_FEATURES)]))
         
+        print("Step 2: Calculating features for prediction...")
         df_features = calculate_technical_features(df.copy())
         hmm_input, xgb_input = prepare_model_input(df_features, macro_dict)
         
+        print("Step 3: Running models (HMM, Volatility, Returns)...")
         # Predictions
         regimes = MODELS['hmm'].predict(hmm_input)
         regime = regimes[-1]
-        volatility_pred = MODELS['volatility'].predict(xgb_input)[0]
-        returns_pred = MODELS['returns_10d'].predict(xgb_input)[0]
+        
+        # This now predicts the NEXT-DAY volatility (e.g., 0.02)
+        volatility_pred = MODELS['volatility'].predict(xgb_input)[0] 
+        
+        # --- FIX 4: Use the correct model name ---
+        # This now predicts the NEXT-DAY return (e.g., 0.005)
+        returns_pred = MODELS['returns_1d'].predict(xgb_input)[0]
+        
         current_price = df['Close'].iloc[-1]
         predicted_price = current_price * (1 + returns_pred)
         
+        print("Step 4: Building prediction cards and plots...")
         # Prediction cards
         regime_color = 'success' if regime == 1 else 'danger'
         regime_text = "Bullish" if regime == 1 else "Bearish"
@@ -678,23 +659,31 @@ def run_prediction(n_clicks, auto_clicks, ticker, *macro_values):
         prediction_cards = dbc.Row([
             dbc.Col(dbc.Card([
                 dbc.CardHeader("Market Regime"),
-                dbc.CardBody(html.H4(regime_text, className=f"text-{regime_color}"))
+                dbc.CardBody([
+                    html.H4(regime_text, className=f"text-{regime_color}"),
+                    html.P("HMM regime (medium / long-term signal)", className="text-muted small mt-2")
+                ])
             ]), md=4),
             dbc.Col(dbc.Card([
-                dbc.CardHeader("10-Day Volatility"),
-                dbc.CardBody(html.H4(f"{volatility_pred*100:.1f}%", className="text-warning"))
+                # --- FIX 5: Update card title and value ---
+                dbc.CardHeader("Next-Day Volatility"),
+                # Display as a sane decimal
+                dbc.CardBody(html.H4(f"{volatility_pred:.4f}", className="text-warning")) 
             ]), md=4),
             dbc.Col(dbc.Card([
-                dbc.CardHeader("10-Day Price Forecast"),
+                # --- FIX 6: Update card title ---
+                dbc.CardHeader("Next-Day Price Forecast"),
                 dbc.CardBody([
                     html.H4(f"${predicted_price:.2f}"),
-                    html.P(f"({returns_pred*100:+.1f}%)", className=f"text-{returns_color}")
+                    # Display the 1-DAY return
+                    html.P(f"({returns_pred*100:+.2f}%)", className=f"text-{returns_color}") 
                 ])
             ]), md=4)
         ])
         
         # Plot 1: HMM Regime Evolution
         fig_regime = go.Figure()
+        # ... (HMM plot code is fine) ...
         fig_regime.add_trace(go.Scatter(
             x=df_features.index, y=regimes, mode='lines', name='Historical Regimes',
             line=dict(color='purple'), hovertemplate='<b>Date</b>: %{x}<br><b>Regime</b>: %{y}<extra></extra>'
@@ -716,33 +705,34 @@ def run_prediction(n_clicks, auto_clicks, ticker, *macro_values):
         fig_vol = go.Figure()
         fig_vol.add_trace(go.Scatter(
             x=recent_vol.index, y=recent_vol, mode='lines', name='Recent Volatility',
-            line=dict(color='orange'), hovertemplate='<b>Date</b>: %{x}<br><b>Vol</b>: %{y:.2%}<extra></extra>'
+            line=dict(color='orange'), hovertemplate='<b>Date</b>: %{x}<br><b>Vol</b>: %{y:.4f}<extra></extra>'
         ))
+        # --- FIX 7: Update volatility plot to show NEXT-DAY prediction ---
         fig_vol.add_hline(y=volatility_pred, line_dash="dash", line_color="red",
-                          annotation_text=f'Predicted 10d Vol: {volatility_pred:.2%}')
+                          annotation_text=f'Predicted Next-Day Vol: {volatility_pred:.4f}')
         fig_vol.update_layout(
-            title='Volatility Trend & Prediction (XGBoost)',
-            yaxis_title='Volatility', template='plotly_white', height=CHART_HEIGHT, hovermode='x unified'
+            title='Volatility Trend & Next-Day Prediction (XGBoost)',
+            yaxis_title='Volatility (Std. Dev of Daily Returns)', 
+            template='plotly_white', height=CHART_HEIGHT, hovermode='x unified'
         )
         
         # Plot 3: Returns Trend & Expected
-        recent_returns = df['Close'].pct_change().iloc[-30:].dropna()
-        recent_dates = df.index[-len(recent_returns):]
+        recent_returns = df_features['Return_Pct'].iloc[-30:].dropna()
         fig_returns = go.Figure()
         fig_returns.add_trace(go.Scatter(
-            x=recent_dates, y=recent_returns, mode='lines+markers', name='Recent Daily Returns',
+            x=recent_returns.index, y=recent_returns, mode='lines+markers', name='Recent Daily Returns',
             line=dict(color='green'), hovertemplate='<b>Date</b>: %{x}<br><b>Return</b>: %{y:.2%}<extra></extra>'
         ))
-        expected_daily = returns_pred / 10
-        fig_returns.add_hline(y=expected_daily, line_dash="dash", line_color="blue",
-                              annotation_text=f'Expected Daily: {expected_daily:.2%} (10d Total: {returns_pred:.2%})')
+        # --- FIX 8: Update returns plot to show NEXT-DAY prediction ---
+        fig_returns.add_hline(y=returns_pred, line_dash="dash", line_color="blue",
+                              annotation_text=f'Predicted Next-Day Return: {returns_pred:.2%}')
         fig_returns.update_layout(
-            title='Recent Returns & Expected (XGBoost)',
+            title='Recent Returns & Next-Day Prediction (XGBoost)',
             yaxis_title='Daily Return', template='plotly_white', height=CHART_HEIGHT, hovermode='x unified'
         )
         
-        # Plot 4: Price Forecast
-        fig_forecast = create_forecast_plot(df, returns_pred, current_price)
+        # --- FIX 9: Call the new 1-day plot function ---
+        fig_forecast = create_forecast_plot_1day(df_features, returns_pred, current_price)
         
         # Layout plots in two rows
         plots_row1 = dbc.Row([
@@ -755,10 +745,20 @@ def run_prediction(n_clicks, auto_clicks, ticker, *macro_values):
         ], className="mb-4")
         
         output_content = html.Div([prediction_cards, plots_row1, plots_row2])
-        # Return the macro input values so the fields remain populated after prediction
         input_values_after = [_to_float_or_default(macro_dict.get(f, None), MACRO_DEFAULTS[f]) for f in MACRO_FEATURES]
+        
+        print("Step 5: Prediction complete. Returning to browser.")
         return [dbc.Alert("Prediction complete", color="success"), output_content] + input_values_after
+    
     except Exception as e:
+        print("\n" + "="*50)
+        print("--- PREDICTION CALLBACK CRASHED! ---")
+        print(f"An unexpected error occurred: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        print("="*50 + "\n")
+        
         return [dbc.Alert(f"Error: {str(e)}", color="danger"), ""] + [None] * len(MACRO_FEATURES)
+
 if __name__ == '__main__':
     app.run(debug=True)

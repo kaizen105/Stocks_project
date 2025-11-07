@@ -11,7 +11,7 @@ def add_metrics():
     """
     
     print("=" * 60)
-    print("CALCULATING STOCK METRICS")
+    print("CALCULATING STOCK METRICS (FIXED VERSION)")
     print("=" * 60)
     
     # Load raw data
@@ -26,31 +26,35 @@ def add_metrics():
     print("\nCalculating metrics...\n")
     
     # 1. DAILY RETURNS
-    print("  → Daily Returns (% change)...", end=" ")
-    df['Return_Pct'] = df.groupby('Ticker')['Close'].pct_change() * 100
+    print(" 	→ Daily Returns (% change)...", end=" ")
+    # --- FIX: Removed * 100 ---
+    df['Return_Pct'] = df.groupby('Ticker')['Close'].pct_change()
     print("✅")
     
     # 2. PRICE RANGE (High-Low spread)
-    print("  → Daily Price Range...", end=" ")
+    print(" 	→ Daily Price Range...", end=" ")
     df['Price_Range'] = df['High'] - df['Low']
-    df['Price_Range_Pct'] = (df['Price_Range'] / df['Close']) * 100
+    # --- FIX: Removed * 100 ---
+    df['Price_Range_Pct'] = (df['Price_Range'] / df['Close'])
     print("✅")
     
     # 3. VOLATILITY (Rolling Standard Deviation)
-    print("  → 10-day Rolling Volatility...", end=" ")
+    print(" 	→ 10-day Rolling Volatility...", end=" ")
+    # This calculation is now correct because Return_Pct is correct
     df['Realized_Vol_10d'] = df.groupby('Ticker')['Return_Pct'].transform(
         lambda x: x.rolling(10, min_periods=5).std()
     )
     print("✅")
     
-    print("  → 20-day Rolling Volatility...", end=" ")
+    print(" 	→ 20-day Rolling Volatility...", end=" ")
+    # This calculation is now correct because Return_Pct is correct
     df['Realized_Vol_20d'] = df.groupby('Ticker')['Return_Pct'].transform(
         lambda x: x.rolling(20, min_periods=10).std()
     )
     print("✅")
     
     # 4. MOVING AVERAGES
-    print("  → Moving Averages (20, 50, 200 day)...", end=" ")
+    print(" 	→ Moving Averages (20, 50, 200 day)...", end=" ")
     df['MA_20'] = df.groupby('Ticker')['Close'].transform(
         lambda x: x.rolling(20, min_periods=10).mean()
     )
@@ -63,7 +67,7 @@ def add_metrics():
     print("✅")
     
     # 5. VOLUME METRICS
-    print("  → Volume Metrics...", end=" ")
+    print(" 	→ Volume Metrics...", end=" ")
     df['Volume_MA_20'] = df.groupby('Ticker')['Volume'].transform(
         lambda x: x.rolling(20, min_periods=10).mean()
     )
@@ -71,15 +75,15 @@ def add_metrics():
     print("✅")
     
     # 6. MOMENTUM INDICATORS
-    print("  → Momentum (5-day change)...", end=" ")
-    df['Momentum_5d'] = df.groupby('Ticker')['Close'].pct_change(5) * 100
+    print(" 	→ Momentum (5-day change)...", end=" ")
+    # --- FIX: Removed * 100 ---
+    df['Momentum_5d'] = df.groupby('Ticker')['Close'].pct_change(5)
     print("✅")
     
     # 7. TARGET VARIABLES (for ML later)
-    print("  → Creating Target Variables...", end=" ")
-    # Next day return (for return prediction)
+    print(" 	→ Creating Target Variables...", end=" ")
+    # These are now correctly scaled
     df['Target_Return_Next'] = df.groupby('Ticker')['Return_Pct'].shift(-1)
-    # Next day volatility (for volatility prediction)
     df['Target_Vol_Next'] = df.groupby('Ticker')['Realized_Vol_10d'].shift(-1)
     print("✅")
     
@@ -99,7 +103,7 @@ def add_metrics():
                 'MA_20', 'MA_50', 'MA_200', 
                 'Volume_MA_20', 'Volume_Ratio', 'Momentum_5d', 'Target_Return_Next', 'Target_Vol_Next']
     for col in new_cols:
-        print(f"  • {col}")
+        print(f" 	• {col}")
     
     print(f"\n✅ Data saved to: {output_file}")
     
@@ -127,8 +131,8 @@ if __name__ == "__main__":
     df = add_metrics()
     
     print("\n" + "=" * 60)
-    print("✅ STEP 2 COMPLETE!")
+    print("✅ STEP 2 (FIXED) COMPLETE!")
     print("=" * 60)
     print("\nYou now have:")
-    print("  • Raw price data: data/raw/stock_prices_raw.csv")
-    print("  • Processed data with metrics: data/processed/stock_prices_with_metrics.csv")
+    print(" 	• Raw price data: data/raw/stock_prices_raw.csv")
+    print(" 	• Processed data with metrics: data/processed/stock_prices_with_metrics.csv")

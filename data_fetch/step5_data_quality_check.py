@@ -23,7 +23,7 @@ FILES_TO_CHECK = {
         'has_ticker': False
     },
     'Final Combined Data': {
-        'path': 'data/features/Stocks_dataset.csv',
+        'path': 'data/features/Stocks_dataset_ml.csv',
         'key_cols': ['Date', 'Ticker', 'Close', 'Fed_Funds_Rate'],
         'has_ticker': True
     }

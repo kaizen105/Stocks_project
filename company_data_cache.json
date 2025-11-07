@@ -1,0 +1,252 @@
+{
+    "AAPL": {
+        "Name": "Apple Inc",
+        "Sector": "TECHNOLOGY",
+        "Industry": "CONSUMER ELECTRONICS",
+        "Market Cap": "3990206546000",
+        "PE Ratio": "36.1",
+        "52 Week High": "277.32",
+        "52 Week Low": "168.8",
+        "Dividend Yield": "0.0038"
+    },
+    "MSFT": {
+        "Name": "Microsoft Corporation",
+        "Sector": "TECHNOLOGY",
+        "Industry": "SOFTWARE - INFRASTRUCTURE",
+        "Market Cap": "3842762342000",
+        "PE Ratio": "36.76",
+        "52 Week High": "554.54",
+        "52 Week Low": "343.59",
+        "Dividend Yield": "0.0066"
+    },
+    "GOOGL": {
+        "Name": "Alphabet Inc Class A",
+        "Sector": "COMMUNICATION SERVICES",
+        "Industry": "INTERNET CONTENT & INFORMATION",
+        "Market Cap": "3351190962000",
+        "PE Ratio": "27.4",
+        "52 Week High": "291.59",
+        "52 Week Low": "140.23",
+        "Dividend Yield": "0.0036"
+    },
+    "GOOG": {
+        "Name": "Alphabet Inc Class C",
+        "Sector": "COMMUNICATION SERVICES",
+        "Industry": "INTERNET CONTENT & INFORMATION",
+        "Market Cap": "3352742855000",
+        "PE Ratio": "27.42",
+        "52 Week High": "291.93",
+        "52 Week Low": "142.36",
+        "Dividend Yield": "0.0036"
+    },
+    "AMZN": {
+        "Name": "Amazon.com Inc",
+        "Sector": "CONSUMER CYCLICAL",
+        "Industry": "INTERNET RETAIL",
+        "Market Cap": "2715315077000",
+        "PE Ratio": "35.82",
+        "52 Week High": "258.6",
+        "52 Week Low": "161.38",
+        "Dividend Yield": "None"
+    },
+    "NVDA": {
+        "Name": "NVIDIA Corporation",
+        "Sector": "TECHNOLOGY",
+        "Industry": "SEMICONDUCTORS",
+        "Market Cap": "4837505761000",
+        "PE Ratio": "56.45",
+        "52 Week High": "212.19",
+        "52 Week Low": "86.61",
+        "Dividend Yield": "0.0002"
+    },
+    "TSLA": {
+        "Name": "Tesla Inc",
+        "Sector": "CONSUMER CYCLICAL",
+        "Industry": "AUTO MANUFACTURERS",
+        "Market Cap": "1477528388000",
+        "PE Ratio": "306.39",
+        "52 Week High": "488.54",
+        "52 Week Low": "214.25",
+        "Dividend Yield": "None"
+    },
+    "META": {
+        "Name": "Meta Platforms Inc.",
+        "Sector": "COMMUNICATION SERVICES",
+        "Industry": "INTERNET CONTENT & INFORMATION",
+        "Market Cap": "1581177373000",
+        "PE Ratio": "27.79",
+        "52 Week High": "795.71",
+        "52 Week Low": "479.11",
+        "Dividend Yield": "0.0033"
+    },
+    "BRK-B": {
+        "Name": "Berkshire Hathaway Inc",
+        "Sector": "FINANCIAL SERVICES",
+        "Industry": "INSURANCE - DIVERSIFIED",
+        "Market Cap": "1051851293000",
+        "PE Ratio": "15.6",
+        "52 Week High": "542.07",
+        "52 Week Low": "440.1",
+        "Dividend Yield": "None"
+    },
+    "LLY": {
+        "Name": "Eli Lilly and Company",
+        "Sector": "HEALTHCARE",
+        "Industry": "DRUG MANUFACTURERS - GENERAL",
+        "Market Cap": "811656675000",
+        "PE Ratio": "43.85",
+        "52 Week High": "955.46",
+        "52 Week Low": "622.41",
+        "Dividend Yield": "0.0065"
+    },
+    "V": {
+        "Name": "Visa Inc. Class A",
+        "Sector": "FINANCIAL SERVICES",
+        "Industry": "CREDIT SERVICES",
+        "Market Cap": "657888117000",
+        "PE Ratio": "33.33",
+        "52 Week High": "374.85",
+        "52 Week Low": "297.98",
+        "Dividend Yield": "0.0072"
+    },
+    "JPM": {
+        "Name": "JPMorgan Chase & Co",
+        "Sector": "FINANCIAL SERVICES",
+        "Industry": "BANKS - DIVERSIFIED",
+        "Market Cap": "842112565000",
+        "PE Ratio": "15.32",
+        "52 Week High": "316.47",
+        "52 Week Low": "200.22",
+        "Dividend Yield": "0.0179"
+    },
+    "XOM": {
+        "Name": "Exxon Mobil Corp",
+        "Sector": "ENERGY",
+        "Industry": "OIL & GAS INTEGRATED",
+        "Market Cap": "481328366000",
+        "PE Ratio": "16.52",
+        "52 Week High": "119.89",
+        "52 Week Low": "96.01",
+        "Dividend Yield": "0.0348"
+    },
+    "WMT": {
+        "Name": "Walmart Inc",
+        "Sector": "CONSUMER DEFENSIVE",
+        "Industry": "DISCOUNT STORES",
+        "Market Cap": "815383446000",
+        "PE Ratio": "38.3",
+        "52 Week High": "109.58",
+        "52 Week Low": "79.43",
+        "Dividend Yield": "0.0087"
+    },
+    "JNJ": {
+        "Name": "Johnson & Johnson",
+        "Sector": "HEALTHCARE",
+        "Industry": "DRUG MANUFACTURERS - GENERAL",
+        "Market Cap": "450200895000",
+        "PE Ratio": "17.98",
+        "52 Week High": "194.48",
+        "52 Week Low": "137.37",
+        "Dividend Yield": "0.0273"
+    },
+    "UNH": {
+        "Name": "UnitedHealth Group Incorporated",
+        "Sector": "HEALTHCARE",
+        "Industry": "HEALTHCARE PLANS",
+        "Market Cap": "302359871000",
+        "PE Ratio": "17.39",
+        "52 Week High": "617.34",
+        "52 Week Low": "233.13",
+        "Dividend Yield": "0.0258"
+    },
+    "MA": {
+        "Name": "Mastercard Inc",
+        "Sector": "FINANCIAL SERVICES",
+        "Industry": "CREDIT SERVICES",
+        "Market Cap": "492642959000",
+        "PE Ratio": "34.85",
+        "52 Week High": "600.98",
+        "52 Week Low": "463.61",
+        "Dividend Yield": "0.0056"
+    },
+    "PG": {
+        "Name": "Procter & Gamble Company",
+        "Sector": "CONSUMER DEFENSIVE",
+        "Industry": "HOUSEHOLD & PERSONAL PRODUCTS",
+        "Market Cap": "340672348000",
+        "PE Ratio": "21.31",
+        "52 Week High": "176.39",
+        "52 Week Low": "145.65",
+        "Dividend Yield": "0.028"
+    },
+    "COST": {
+        "Name": "Costco Wholesale Corp",
+        "Sector": "CONSUMER DEFENSIVE",
+        "Industry": "DISCOUNT STORES",
+        "Market Cap": "416916374000",
+        "PE Ratio": "51.72",
+        "52 Week High": "1073.82",
+        "52 Week Low": "868.14",
+        "Dividend Yield": "0.0053"
+    },
+    "HD": {
+        "Name": "The Home Depot Inc",
+        "Sector": "CONSUMER CYCLICAL",
+        "Industry": "HOME IMPROVEMENT RETAIL",
+        "Market Cap": "381312696000",
+        "PE Ratio": "26.04",
+        "52 Week High": "429.19",
+        "52 Week Low": "322.47",
+        "Dividend Yield": "0.0242"
+    },
+    "ORCL": {
+        "Name": "Oracle Corporation",
+        "Sector": "TECHNOLOGY",
+        "Industry": "SOFTWARE - INFRASTRUCTURE",
+        "Market Cap": "707481240000",
+        "PE Ratio": "59.51",
+        "52 Week High": "345.12",
+        "52 Week Low": "117.98",
+        "Dividend Yield": "0.0074"
+    },
+    "MRK": {
+        "Name": "Merck & Company Inc",
+        "Sector": "HEALTHCARE",
+        "Industry": "DRUG MANUFACTURERS - GENERAL",
+        "Market Cap": "209464115000",
+        "PE Ratio": "10.92",
+        "52 Week High": "101.32",
+        "52 Week Low": "71.87",
+        "Dividend Yield": "0.0388"
+    },
+    "CVX": {
+        "Name": "Chevron Corp",
+        "Sector": "ENERGY",
+        "Industry": "OIL & GAS INTEGRATED",
+        "Market Cap": "307925942000",
+        "PE Ratio": "21.63",
+        "52 Week High": "165.09",
+        "52 Week Low": "129.01",
+        "Dividend Yield": "0.0439"
+    },
+    "AVGO": {
+        "Name": "Broadcom Inc",
+        "Sector": "TECHNOLOGY",
+        "Industry": "SEMICONDUCTORS",
+        "Market Cap": "1695234654000",
+        "PE Ratio": "91.81",
+        "52 Week High": "386.48",
+        "52 Week Low": "137.54",
+        "Dividend Yield": "0.0067"
+    },
+    "CRM": {
+        "Name": "Salesforce.com Inc",
+        "Sector": "TECHNOLOGY",
+        "Industry": "SOFTWARE - APPLICATION",
+        "Market Cap": "242226889000",
+        "PE Ratio": "37.04",
+        "52 Week High": "366.78",
+        "52 Week Low": "226.09",
+        "Dividend Yield": "0.0062"
+    }
+}
