@@ -96,7 +96,7 @@ server = app.server
 
 # Initialize Flask-Caching
 cache = Cache(config={
-    'CACHE_TYPE': 'FileSystem',
+    'CACHE_TYPE': 'filesystem',
     'CACHE_DIR': 'app-cache-directory',
     'CACHE_DEFAULT_TIMEOUT': 300  # 5 minutes default timeout
 })
