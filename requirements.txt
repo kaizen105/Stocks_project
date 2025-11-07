@@ -16,4 +16,4 @@ dash-bootstrap-components
 gunicorn
 alpha_vantage 
 dotenv
-dash-extensions
+flask-catching
