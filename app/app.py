@@ -21,7 +21,7 @@ import hmmlearn
 from hmmlearn.hmm import GaussianHMM
 # Import data processor
 # --- NOTE: Make sure this import path is correct for your deployment ---
-from data_processor import (
+from app.data_processor import (
     fetch_stock_data,
     calculate_technical_features,
     prepare_model_input,
