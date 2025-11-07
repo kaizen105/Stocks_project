@@ -38,13 +38,26 @@ MODELS = {}
 MODELS_LOADED = False
 print("--- Loading models... ---")
 try:
-    MODELS = {
-        "hmm": joblib.load(os.path.join(APP_DIR, 'hmm_regime_classifier_v1.joblib')),
-        # This model predicts NEXT-DAY volatility
-        "volatility": joblib.load(os.path.join(APP_DIR, 'volatility_xgb_no_persistence_v1.joblib')),
-        # This model predicts NEXT-DAY return
-        "returns_1d": joblib.load(os.path.join(APP_DIR, 'returns_xgb_global_tuned_v1.joblib'))
+    # Load models from disk and print debug info (size + mtime) so we can
+    # verify the deployment is loading the expected artifacts.
+    model_files = {
+        'hmm': os.path.join(APP_DIR, 'hmm_regime_classifier_v1.joblib'),
+        'volatility': os.path.join(APP_DIR, 'volatility_xgb_no_persistence_v1.joblib'),
+        'returns_1d': os.path.join(APP_DIR, 'returns_xgb_global_tuned_v1.joblib')
     }
+    MODELS = {}
+    for name, path in model_files.items():
+        try:
+            MODELS[name] = joblib.load(path)
+            try:
+                st = os.stat(path)
+                mtime = datetime.fromtimestamp(st.st_mtime).isoformat()
+                size_kb = st.st_size / 1024.0
+                print(f"Loaded model '{name}' from {path} (size={size_kb:.1f}KB, mtime={mtime})")
+            except Exception:
+                print(f"Loaded model '{name}' from {path} (stat failed)")
+        except FileNotFoundError:
+            raise
     MODELS_LOADED = True
     print("✅ Models loaded")
 except FileNotFoundError as e:
@@ -658,10 +671,29 @@ def run_prediction(n_clicks, auto_clicks, ticker, *macro_values):
         regime = regimes[-1]
         
         # This now predicts the NEXT-DAY volatility (e.g., 0.02)
-        volatility_pred = MODELS['volatility'].predict(xgb_input)[0]
+        raw_vol_pred = MODELS['volatility'].predict(xgb_input)[0]
 
         # This now predicts the NEXT-DAY return (e.g., 0.005)
-        returns_pred = MODELS['returns_1d'].predict(xgb_input)[0]
+        raw_returns_pred = MODELS['returns_1d'].predict(xgb_input)[0]
+
+        # Debug: print raw predictions and input summary to help diagnose
+        # mismatches between local and deployed outputs.
+        try:
+            print(f"[DEBUG] raw_vol_pred={raw_vol_pred} (type={type(raw_vol_pred)}), raw_returns_pred={raw_returns_pred} (type={type(raw_returns_pred)})")
+        except Exception:
+            pass
+        try:
+            # xgb_input may be a 2D array-like; print first row/first 8 features
+            xi = np.array(xgb_input)
+            if xi.size > 0:
+                summary = xi.reshape((xi.shape[0], -1))[0][:8].tolist()
+                print(f"[DEBUG] xgb_input[0][:8]={summary} shape={xi.shape}")
+        except Exception:
+            pass
+
+        # Assign to working names
+        volatility_pred = raw_vol_pred
+        returns_pred = raw_returns_pred
 
         # Robustness: some model artifacts (or different deployment pipelines)
         # may store or return percentage values (e.g., 1.99 means 1.99%).
