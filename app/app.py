@@ -21,7 +21,7 @@ import hmmlearn
 from hmmlearn.hmm import GaussianHMM
 # Import data processor
 # --- NOTE: Make sure this import path is correct for your deployment ---
-from app.data_processor import (
+from data_processor import (
     fetch_stock_data,
     calculate_technical_features,
     prepare_model_input,
@@ -658,11 +658,27 @@ def run_prediction(n_clicks, auto_clicks, ticker, *macro_values):
         regime = regimes[-1]
         
         # This now predicts the NEXT-DAY volatility (e.g., 0.02)
-        volatility_pred = MODELS['volatility'].predict(xgb_input)[0] 
-        
+        volatility_pred = MODELS['volatility'].predict(xgb_input)[0]
+
         # This now predicts the NEXT-DAY return (e.g., 0.005)
         returns_pred = MODELS['returns_1d'].predict(xgb_input)[0]
-        
+
+        # Robustness: some model artifacts (or different deployment pipelines)
+        # may store or return percentage values (e.g., 1.99 means 1.99%).
+        # If the magnitude looks like a percent (>1) convert to decimal.
+        try:
+            if abs(float(volatility_pred)) > 1:
+                volatility_pred = float(volatility_pred) / 100.0
+        except Exception:
+            # If conversion fails, keep the original value and continue
+            pass
+
+        try:
+            if abs(float(returns_pred)) > 1:
+                returns_pred = float(returns_pred) / 100.0
+        except Exception:
+            pass
+
         current_price = df['Close'].iloc[-1]
         predicted_price = current_price * (1 + returns_pred)
         
