@@ -11,7 +11,7 @@ import os
 import warnings
 from datetime import datetime, timedelta
 import yfinance as yf
-from dash_extensions.caching import Cache, FileSystemStore # <--- MODIFIED 1: Added import
+from flask_caching import Cache
 
 warnings.filterwarnings('ignore')
 # Required imports for model loading
@@ -94,13 +94,13 @@ app = dash.Dash(
 )
 server = app.server
 
-# <--- MODIFIED 2: Initialize the cache ---
-cache = Cache(app.server, config={
-    'CACHE_TYPE': 'FileSystemCache',
-    # This folder will be created to store cache files
-    'CACHE_DIR': 'app-cache-directory' 
+# Initialize Flask-Caching
+cache = Cache(config={
+    'CACHE_TYPE': 'FileSystem',
+    'CACHE_DIR': 'app-cache-directory',
+    'CACHE_DEFAULT_TIMEOUT': 300  # 5 minutes default timeout
 })
-# ----------------------------------------
+cache.init_app(server)
 
 # =============================================================================
 # 3. NAVBAR
