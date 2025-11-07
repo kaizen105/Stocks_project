@@ -11,7 +11,8 @@ import os
 import warnings
 from datetime import datetime, timedelta
 import yfinance as yf
-from flask_caching import Cache
+# --- FIX: Removed 'from flask_caching import Cache' ---
+# Caching was causing deployment failures.
 
 warnings.filterwarnings('ignore')
 # Required imports for model loading
@@ -19,7 +20,8 @@ import xgboost
 import hmmlearn
 from hmmlearn.hmm import GaussianHMM
 # Import data processor
-from app.data_processor import (
+# --- NOTE: Make sure this import path is correct for your deployment ---
+from data_processor import (
     fetch_stock_data,
     calculate_technical_features,
     prepare_model_input,
@@ -94,13 +96,10 @@ app = dash.Dash(
 )
 server = app.server
 
-# Initialize Flask-Caching
-cache = Cache(config={
-    'CACHE_TYPE': 'filesystem',
-    'CACHE_DIR': 'app-cache-directory',
-    'CACHE_DEFAULT_TIMEOUT': 300  # 5 minutes default timeout
-})
-cache.init_app(server)
+# --- FIX: Removed all Flask-Caching setup ---
+# cache = Cache(config={...})
+# cache.init_app(server)
+# --- This was causing deployment failures ---
 
 # =============================================================================
 # 3. NAVBAR
@@ -346,32 +345,17 @@ def live_search(n_clicks, search_value):
                         html.Small(f"{stock['type']} | {stock['region']}", className="text-secondary")
                     ]),
                     dbc.Button("Analyze", href=f"/analysis?ticker={stock['symbol']}",
-                                color="primary", size="sm", className="w-100")
+                                 color="primary", size="sm", className="w-100")
                 ])
             ], className="h-100")
         ], md=3, className="mb-3")
         result_cards.append(card)
     return dbc.Row(result_cards)
 
-# <--- MODIFIED 3: Added new cached helper function ---
-@cache.memoize(timeout=300) # Caches for 300 seconds (5 minutes)
-def get_yfinance_info(ticker):
-    """
-    Safely fetches and caches yf.Ticker.info data.
-    Returns None if the ticker is invalid.
-    """
-    print(f"--- [Cache MISS] Fetching yf.info for {ticker} ---")
-    try:
-        yf_ticker = yf.Ticker(ticker)
-        info = yf_ticker.info
-        # Check for a valid price to confirm it's a real ticker
-        if info and info.get('regularMarketPrice') is not None:
-            return info
-        return None
-    except Exception as e:
-        print(f"Error fetching yf.info for {ticker}: {e}")
-        return None
-# ----------------------------------------------------
+# --- FIX: Removed the entire cached get_yfinance_info function ---
+# @cache.memoize(timeout=300)
+# def get_yfinance_info(ticker): ...
+# --- This was causing deployment failures ---
 
 # =============================================================================
 # 10. ANALYSIS PAGE CALLBACKS (DEBUGGED)
@@ -399,37 +383,37 @@ def update_analysis(n_clicks, ticker):
     ticker = ticker.upper()
     
     try:
-        # <--- MODIFIED 4: Replaced direct .info call with cached function ---
-        print(f"Step 1: Validating ticker via cache...")
-        ticker_info = get_yfinance_info(ticker)
+        # --- FIX: Removed the problematic yf.info validation ---
+        # print(f"Step 1: Validating ticker via cache...")
+        # ticker_info = get_yfinance_info(ticker)
+        # if not ticker_info:
+        #     print("Step 1 FAILED: Ticker validation failed or is invalid.")
+        #     return [dbc.Alert(f"Invalid or delisted ticker: {ticker}", color="danger")] + [""] * 8
+        # --- END OF FIX ---
         
-        if not ticker_info:
-            print("Step 1 FAILED: Ticker validation failed or is invalid.")
-            return [dbc.Alert(f"Invalid or delisted ticker: {ticker}", color="danger")] + [""] * 8
-        # --- END OF MODIFICATION ---
-        
-        print(f"Step 2: Ticker valid. Fetching stock data...")
+        # The validation is now handled inside fetch_stock_data, which is safer.
+        print(f"Step 1: Fetching stock data for {ticker}...")
         df = fetch_stock_data(ticker, days_needed=252)
         if df.empty:
-            print("Step 2 FAILED: fetch_stock_data returned an empty DataFrame.")
-            return [dbc.Alert(f"No data for {ticker}", color="danger")] + [""] * 8
+            print("Step 1 FAILED: fetch_stock_data returned an empty DataFrame.")
+            return [dbc.Alert(f"No data for {ticker} (or invalid ticker)", color="danger")] + [""] * 8
         
-        print("Step 3: Data fetched. Calculating technical features...")
+        print("Step 2: Data fetched. Calculating technical features...")
         df_features = calculate_technical_features(df.copy())
         
         if len(df_features) == 0:
-            print("Step 3 FAILED: Feature calculation resulted in empty data.")
-            return [dbc.Alert("Insufficient history", color="warning")] + [""] * 8
+            print("Step 2 FAILED: Feature calculation resulted in empty data.")
+            return [dbc.Alert("Insufficient history for calculation", color="warning")] + [""] * 8
         
-        print("Step 4: Features calculated. Getting company overview from CACHE...")
+        print("Step 3: Features calculated. Getting company overview from CACHE...")
         # This now reads from the JSON cache, so it's instant
         company_info = get_company_overview(ticker)
         
         if not company_info:
-            print(f"Step 4 WARNING: No cache data for {ticker}. Proceeding with N/A.")
+            print(f"Step 3 WARNING: No cache data for {ticker}. Proceeding with N/A.")
             company_info = {} # Ensure it's a dict
         
-        print("Step 5: Building info card...")
+        print("Step 4: Building info card...")
         info_card = dbc.Card([
             dbc.CardBody([
                 dbc.Row([
@@ -448,7 +432,7 @@ def update_analysis(n_clicks, ticker):
             ])
         ], color="light", className="mb-3")
         
-        print("Step 6: Building charts...")
+        print("Step 5: Building charts...")
         # Chart 1: Candlestick Price Chart
         price_hovertext = [
             f"<b>Open</b>: {o:.2f}<br><b>High</b>: {h:.2f}<br><b>Low</b>: {l:.2f}<br><b>Close</b>: {c:.2f}"
@@ -511,7 +495,7 @@ def update_analysis(n_clicks, ticker):
         fig_dist.add_vline(x=returns.mean(), line_dash="dash", line_color="red", annotation_text="Mean")
         fig_dist.update_layout(title='Daily Returns Distribution', template='plotly_white', height=CHART_HEIGHT)
         
-        print("Step 7: Building summary stats...")
+        print("Step 6: Building summary stats...")
         summary_stats = dbc.Card([
             dbc.CardBody([
                 dbc.Row([
@@ -537,7 +521,7 @@ def update_analysis(n_clicks, ticker):
             ])
         ])
         
-        print("Step 8: All components built. Returning to browser.")
+        print("Step 7: All components built. Returning to browser.")
         
         return [
             dbc.Alert(f"Analysis complete for {ticker}", color="success"),
@@ -560,10 +544,10 @@ def update_analysis(n_clicks, ticker):
         print("="*50 + "\n")
         return [dbc.Alert(f"Error: {str(e)}", color="danger")] + [""] * 8
 # =============================================================================
-# 11. PREDICTION PAGE CALLBACKS (*** THIS IS THE FINAL FIX ***)
+# 11. PREDICTION PAGE CALLBACKS (This part is unchanged, still correct)
 # =============================================================================
 
-# --- FIX 1: Renamed function to reflect 1-DAY forecast ---
+# --- This function is correct ---
 def create_forecast_plot_1day(df, returns_pred, current_price):
     fig = go.Figure()
     
@@ -577,7 +561,7 @@ def create_forecast_plot_1day(df, returns_pred, current_price):
         hovertemplate='<b>Date</b>: %{x}<br><b>Price</b>: $%{y:.2f}<extra></extra>'
     ))
     
-    # --- FIX 2: Only predict ONE business day into the future ---
+    # --- Only predict ONE business day into the future ---
     last_date = df.index[-1]
     future_date = pd.bdate_range(start=last_date, periods=2)[-1] # Next business day
     predicted_price = current_price * (1 + returns_pred)
@@ -591,7 +575,6 @@ def create_forecast_plot_1day(df, returns_pred, current_price):
     ))
     
     fig.update_layout(
-        # --- FIX 3: Update title ---
         title='Next-Day Price Forecast',
         xaxis_title='Date',
         yaxis_title='Price ($)',
@@ -677,7 +660,6 @@ def run_prediction(n_clicks, auto_clicks, ticker, *macro_values):
         # This now predicts the NEXT-DAY volatility (e.g., 0.02)
         volatility_pred = MODELS['volatility'].predict(xgb_input)[0] 
         
-        # --- FIX 4: Use the correct model name ---
         # This now predicts the NEXT-DAY return (e.g., 0.005)
         returns_pred = MODELS['returns_1d'].predict(xgb_input)[0]
         
@@ -699,13 +681,11 @@ def run_prediction(n_clicks, auto_clicks, ticker, *macro_values):
                 ])
             ]), md=4),
             dbc.Col(dbc.Card([
-                # --- FIX 5: Update card title and value ---
                 dbc.CardHeader("Next-Day Volatility"),
                 # Display as a sane decimal
                 dbc.CardBody(html.H4(f"{volatility_pred:.4f}", className="text-warning")) 
             ]), md=4),
             dbc.Col(dbc.Card([
-                # --- FIX 6: Update card title ---
                 dbc.CardHeader("Next-Day Price Forecast"),
                 dbc.CardBody([
                     html.H4(f"${predicted_price:.2f}"),
@@ -724,8 +704,8 @@ def run_prediction(n_clicks, auto_clicks, ticker, *macro_values):
         ))
         fig_regime.add_trace(go.Scatter(
             x=[df_features.index[-1]], y=[regime], mode='markers', marker=dict(size=12, color='red'),
-            name='Current Regime', hovertemplate='<b>Current</b>: %{y}<extra></extra>'
-        ))
+            name='Current Regime', hovertemplate='<b>Current</b>: %{y}<extra></primary>')
+        )
         fig_regime.add_hline(y=0.5, line_dash="dash", line_color="gray", annotation_text="Bearish / Bullish")
         fig_regime.update_layout(
             title='Market Regime Evolution (HMM)',
@@ -741,7 +721,6 @@ def run_prediction(n_clicks, auto_clicks, ticker, *macro_values):
             x=recent_vol.index, y=recent_vol, mode='lines', name='Recent Volatility',
             line=dict(color='orange'), hovertemplate='<b>Date</b>: %{x}<br><b>Vol</b>: %{y:.4f}<extra></extra>'
         ))
-        # --- FIX 7: Update volatility plot to show NEXT-DAY prediction ---
         fig_vol.add_hline(y=volatility_pred, line_dash="dash", line_color="red",
                           annotation_text=f'Predicted Next-Day Vol: {volatility_pred:.4f}')
         fig_vol.update_layout(
@@ -757,7 +736,6 @@ def run_prediction(n_clicks, auto_clicks, ticker, *macro_values):
             x=recent_returns.index, y=recent_returns, mode='lines+markers', name='Recent Daily Returns',
             line=dict(color='green'), hovertemplate='<b>Date</b>: %{x}<br><b>Return</b>: %{y:.2%}<extra></extra>'
         ))
-        # --- FIX 8: Update returns plot to show NEXT-DAY prediction ---
         fig_returns.add_hline(y=returns_pred, line_dash="dash", line_color="blue",
                               annotation_text=f'Predicted Next-Day Return: {returns_pred:.2%}')
         fig_returns.update_layout(
@@ -765,7 +743,7 @@ def run_prediction(n_clicks, auto_clicks, ticker, *macro_values):
             yaxis_title='Daily Return', template='plotly_white', height=CHART_HEIGHT, hovermode='x unified'
         )
         
-        # --- FIX 9: Call the new 1-day plot function ---
+        # Plot 4: Price Forecast
         fig_forecast = create_forecast_plot_1day(df_features, returns_pred, current_price)
         
         # Layout plots in two rows
