@@ -321,7 +321,7 @@ This ensures the model can make true out-of-sample predictions in production wit
 - **Statistical Significance**: Beat GARCH baseline (DM test p<0.0001)
 - **Key Achievement**: Successfully predicts volatility using only price/volume features and macro indicators
 - **Data Leakage Prevention**: Deliberately excluded lagged volatility features (`Realized_Vol_10d/20d`, `Volatility_Ratio`) that would create unrealistic in-sample performance but fail in production
-- **SHAP Analysis**: SHAP output for the ML model reveals that the top drivers of volatility are different from solely relying on the VIX. Other features play a significant role in predicting volatility.
+- **SHAP Analysis**: SHAP output for the ML model reveals that the top drivers of volatility are actually **Fed_Funds_Rate** and **Price_Range_Pct**, which both rank higher in importance than the **VIX**. Other features like Momentum_5d and Volume_MA_20 also play a significant role.
 
 **Returns Forecasting:**
 - **Best Model**: XGBoost (Tuned)
