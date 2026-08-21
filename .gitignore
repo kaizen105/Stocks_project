@@ -22,3 +22,4 @@ app-cache-directory/
 # Project caches
 company_data_cache.json
 find_imports.py
+keras_tuner_dir/
