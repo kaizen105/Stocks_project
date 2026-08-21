@@ -17,3 +17,11 @@ gunicorn
 alpha_vantage 
 dotenv
 Flask-Caching
+plotly
+joblib
+requests
+sqlalchemy
+tensorflow
+keras-tuner
+scipy
+tensorboard
